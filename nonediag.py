@@ -69,6 +69,8 @@ def main(args):
     print(log)
     if "ModuleNotFoundError" in log:
         lack_module(log)
+    if "NotImplementedError" in log:
+        ...
 
 
 if __name__ == "__main__":
