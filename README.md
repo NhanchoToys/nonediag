@@ -1,6 +1,7 @@
 # nonediag
 
 NoneBot2 error diagnosing tool.
+
 NoneBot2 错误诊断工具。
 
 ## 操作方法
