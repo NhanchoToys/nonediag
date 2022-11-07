@@ -25,7 +25,7 @@ class Normalizer(ast.NodeTransformer):
     visit_ImportFrom = visit_Import
 
     def visit_Name(self, node):
-        if node.ctx == ast.Store():
+        if node.ctx != ast.Load():
             return node
         return node if node.id not in self.__name_refs else makeattr(self.__name_refs[node.id])
 
@@ -78,6 +78,7 @@ def deref(code: str):
 
     # for x in parsed:
     parsed = Normalizer(ref.refs).visit(parsed)
-    print(out := ast.unparse(parsed))
-    print(ref.refs)
+    out = ast.unparse(parsed)
+    # print(out := ast.unparse(parsed))
+    # print(ref.refs)
     return out, ref.refs

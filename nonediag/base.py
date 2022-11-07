@@ -43,6 +43,7 @@ def readbotpy(fp: str):
     out = {
         "adapters": [],
         "userload": [],
+        "userload_builtin": [],
         "toml": ""
     }
     code, imp = readpy(fp)
@@ -51,7 +52,16 @@ def readbotpy(fp: str):
         if "nonebot.load_from_toml" in ln:
             out["toml"] = ast.literal_eval(ln.split("nonebot.load_from_toml")[1])
         elif "nonebot.load_plugins" in ln:
-            out["userload"].append(ast.literal_eval(ln.split("nonebot.load_plugins")[1]))
+            out["userload"].extend(ast.literal_eval(ln.split("nonebot.load_plugins")[1]))
         elif "nonebot.load_plugin" in ln:
             out["userload"].append(ast.literal_eval(ln.split("nonebot.load_plugin")[1]))
+        elif "nonebot.load_builtin_plugins" in ln:
+            out["userload_builtin"].extend(ast.literal_eval(ln.split("nonebot.load_builtin_plugins")[1]))
+        elif "nonebot.load_builtin_plugin" in ln:
+            out["userload_builtin"].append(ast.literal_eval(ln.split("nonebot.load_builtin_plugin")[1]))
     return out
+
+
+def noneversion():
+    from nonebot import VERSION
+    return VERSION
