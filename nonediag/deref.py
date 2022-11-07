@@ -40,6 +40,8 @@ class RefSys:
             raise ValueError("Expecting ast.Attribute")
         if isinstance(o.value, ast.Attribute):
             return f"{self.solveattr(o.value)}.{o.attr}"
+        if isinstance(o.value, ast.Call):
+            return f"{ast.unparse(o.value)}.{o.attr}"
         return f"{self.solveref(o.value.id)}.{o.attr}"
 
     def createref(self, o):
@@ -47,15 +49,25 @@ class RefSys:
             self.refs.update({x.asname: x.name for x in o.names if x.asname is not None})
             return True
         elif isinstance(o, ast.ImportFrom):
-            self.refs.update({(x.asname if x.asname is not None else x.name): resolve_name("." * o.level + ".".join((o.module, x.name)), self.package) for x in o.names})
-            return True
+            try:
+                self.refs.update(
+                    {
+                        (x.asname if x.asname is not None else x.name): resolve_name("." * o.level + ".".join((o.module, x.name) if o.module is not None else (x.name, )), self.package)
+                        for x in o.names
+                    }
+                )
+                return True
+            except ImportError:
+                return False
         elif isinstance(o, ast.Assign):
             if isinstance((t := o.targets[0]), ast.Tuple):
-                self.refs.update(p := {k.id: v.id for k, v in zip(t.elts, o.value.elts) if isinstance(v, ast.Name)})
-            elif isinstance(t, ast.Subscript) or isinstance(o.value, ast.Subscript):
+                if not isinstance(o.value, ast.Tuple):
+                    return False
+                self.refs.update(p := {k.id: v.id for k, v in zip(t.elts, o.value.elts) if isinstance(k, ast.Name) and isinstance(v, ast.Name)})
+            elif isinstance(t, (ast.Subscript, ast.Attribute)) or isinstance(o.value, (ast.Subscript, ast.Attribute)):
                 return False
             else:
-                self.refs.update(p := {t.id: o.value.id} if isinstance(o.value, ast.Name) else {t.id: self.solveattr(o.value)} if isinstance(o.value, ast.Attribute) else {})
+                self.refs.update(p := {t.id: o.value.id} if isinstance(t, ast.Name) and isinstance(o.value, ast.Name) else {t.id: self.solveattr(o.value)} if isinstance(t, ast.Name) and isinstance(o.value, ast.Attribute) else {})
             return bool(p)
         else:
             raise ValueError("Expecting ast.Import, ast.ImportFrom or ast.Assign")
@@ -73,8 +85,8 @@ def deref(code: str):
         if isinstance(o, (ast.Import, ast.ImportFrom, ast.Assign)):
             ref.createref(o)
             continue
-        print(ast.dump(o))
-        print()
+        # print(ast.dump(o))
+        # print()
 
     # for x in parsed:
     parsed = Normalizer(ref.refs).visit(parsed)

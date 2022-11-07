@@ -1,8 +1,11 @@
 import os
 from shlex import quote
+import sys
 from typing import List
+import zipfile
 
 from nonediag.base import readpy
+from nonediag.deref import deref
 from nonediag.versions import HAS_REQUIRE_EXPORT, REMOVE_EXPORT
 
 
@@ -57,6 +60,7 @@ def warn_bad_import(imp: List[str]):
 
 
 def duplicate_import(log: str, data):
+    # covered
     found = []
     for ln in log.splitlines():
         if ln.startswith("RuntimeError: Plugin already exists: "):
@@ -70,15 +74,60 @@ def duplicate_import(log: str, data):
         print()
 
 
-def no_export(ver):
+def _zip_ls(zip: str):
+    with zipfile.ZipFile(zip) as f:
+        return [x.filename for x in f.filelist]
+
+
+def _zip_view(zip: str, fp: str):
+    with zipfile.ZipFile(zip) as f:
+        return f.open(fp).read()
+
+
+def no_export(ver, info):
     # covered
+    found = []
+    for upld in info["plugin_dirs"]:
+        for base, _, fns in os.walk(upld):
+            for fn in fns:
+                if fn.endswith(".py"):
+                    c, imp = readpy(f"{base}/{fn}")
+                    if "nonebot.export(" in c or "nonebot.export" in imp.values():
+                        found.append(f"{base}/{fn}")
+
+    for p in sys.path[::-1]:
+        # if found:
+        #     break
+        try:
+            if p.endswith(".zip"):
+                for fp in _zip_ls(p):
+                    if fp.endswith(".py"):
+                        precode = _zip_view(p, fp).decode()
+                        code, imp = deref(precode)
+                        if "nonebot.export(" in code or "nonebot.export" in imp.values():
+                            found.append(f"{p}#{fp}")
+            else:
+                for base, _, fns in os.walk(p):
+                    if "nonebot_plugin" not in base:
+                        continue
+                    for fn in fns:
+                        if fn.endswith(".py"):
+                            # print(f"Looking up {base}/{fn} ...")
+                            c, imp = readpy(f"{base}/{fn}")
+                            if "nonebot.export(" in c or "nonebot.export" in imp.values():
+                                found.append(f"{base}/{fn}")
+        except FileNotFoundError:
+            pass
+
     print(
         "发现问题：",
         f"  'nonebot.export()' 需要满足依赖关系：nonebot2>={HAS_REQUIRE_EXPORT},<{REMOVE_EXPORT}",
         f"  当前 nonebot2 版本为 {ver}，不满足上述依赖要求",
+        "已找到使用 'nonebot.export()' 的文件：",
+        *("  " + d for d in found),
         "解决方案：",
         "  1. 移除插件中的 'export'",
-        f"  2. 升/降级 nonebot2 到上述依赖区间 (nonebot2>={HAS_REQUIRE_EXPORT},<{REMOVE_EXPORT})",
+        "  2. 升/降级 nonebot2 到上述依赖区间",
         "",
         sep="\n"
     )

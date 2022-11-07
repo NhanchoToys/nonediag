@@ -35,8 +35,8 @@ def readtoml(fp: str):
 
 
 def readpy(fp: str):
-    with open(fp) as f:
-        return deref(f.read())
+    with open(fp, "rb") as f:
+        return deref(f.read().decode(errors="ignore"))
 
 
 def readbotpy(fp: str):

@@ -33,7 +33,7 @@ def main(args):
         duplicate_import(log, info)
     if nv < HAS_REQUIRE_EXPORT or nv >= DEPRECATE_EXPORT:
         if "ImportError: cannot import name 'export' from 'nonebot'" in log:
-            no_export(nv)
+            no_export(nv, info)
     if "ModuleNotFoundError" in log:
         lack_module(log)
     if "NotImplementedError" in log:
@@ -41,7 +41,7 @@ def main(args):
             not_implemented(d)
 
 
-if __name__ == "__main__":
+def _entry():
     ap = ArgumentParser(
         "nonediag", description="NoneBot2 error diagnosing tool."
     )
@@ -52,3 +52,7 @@ if __name__ == "__main__":
     args = ap.parse_args()
     # print(args)
     main(args)
+
+
+if __name__ == "__main__":
+    _entry()
