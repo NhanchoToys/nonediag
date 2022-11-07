@@ -47,7 +47,7 @@ def readbotpy(fp: str):
         "toml": ""
     }
     code, imp = readpy(fp)
-    out["adapters"].extend(imp.values())
+    out["adapters"].extend(x for x in imp.values() if x.startswith("nonebot.adapters."))
     for ln in code.splitlines():
         if "nonebot.load_from_toml" in ln:
             out["toml"] = ast.literal_eval(ln.split("nonebot.load_from_toml")[1])
@@ -56,12 +56,26 @@ def readbotpy(fp: str):
         elif "nonebot.load_plugin" in ln:
             out["userload"].append(ast.literal_eval(ln.split("nonebot.load_plugin")[1]))
         elif "nonebot.load_builtin_plugins" in ln:
-            out["userload_builtin"].extend(ast.literal_eval(ln.split("nonebot.load_builtin_plugins")[1]))
+            data = ast.literal_eval(ln.split("nonebot.load_builtin_plugins")[1])
+            out["userload_builtin"].append(data) if isinstance(data, str) else out["userload_builtin"].extend(data)
         elif "nonebot.load_builtin_plugin" in ln:
             out["userload_builtin"].append(ast.literal_eval(ln.split("nonebot.load_builtin_plugin")[1]))
     return out
 
 
 def noneversion():
-    from nonebot import VERSION
-    return VERSION
+    try:
+        from nonebot import VERSION
+        return VERSION
+    except (ImportError, ModuleNotFoundError):
+        print(
+            "警告：",
+            "  **当前环境**没有 nonebot2",
+            "  我们无法在缺少 nonebot2 的环境中进行详细诊断",
+            "  您可能没有进入 bot 使用的环境",
+            "解决方案：",
+            "  1. 切换至有 nonebot2 的环境后运行本程序",
+            "  2. 在当前环境安装 nonebot2",
+            "",
+            sep="\n"
+        )

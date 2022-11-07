@@ -131,3 +131,12 @@ def no_export(ver, info):
         "",
         sep="\n"
     )
+
+
+def port_used():
+    print(
+        "发现错误：端口被占用",
+        "解决方案：",
+        "  修改环境文件（.env*）中的 PORT 为其他值",
+        sep="\n"
+    )
