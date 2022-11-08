@@ -9,6 +9,10 @@ def readlog():
     out: List[str] = []
     emptyline = 0
     try:
+        print(
+            "请输入错误日志\n"
+            "输入完成后连续敲击 3~4 下回车即可"
+        )
         while True:
             out.append(x := input())
             if not x:
