@@ -4,6 +4,17 @@ NoneBot2 error diagnosing tool.
 
 NoneBot2 错误诊断工具。
 
+## Supported Function | 支持功能
+
+nonediag 目前支持以下类型的错误诊断：
+
+- 模块/适配器缺失
+- Python 版本不适配
+- 错误导入抽象基类
+- bot.py 手动导入检查及重复导入
+- `nonebot.export` 检查
+- 端口占用提示
+
 ## Installation | 安装
 
 在 bot 环境中安装 nonediag
