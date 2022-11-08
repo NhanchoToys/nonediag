@@ -1,4 +1,5 @@
 import os
+from pprint import pprint
 from shlex import quote
 import sys
 from typing import List
@@ -6,7 +7,7 @@ import zipfile
 
 from nonediag.base import readpy
 from nonediag.deref import deref
-from nonediag.versions import HAS_REQUIRE_EXPORT, REMOVE_EXPORT
+from nonediag.versions import HAS_REQUIRE_EXPORT, REMOVE_DEFAULT_STATE, REMOVE_EXPORT
 
 
 def lack_module(log: str):
@@ -102,7 +103,7 @@ def no_export(ver, info):
             if p.endswith(".zip"):
                 for fp in _zip_ls(p):
                     if fp.endswith(".py"):
-                        precode = _zip_view(p, fp).decode()
+                        precode = _zip_view(p, fp).decode(errors="ignore")
                         code, imp = deref(precode)
                         if "nonebot.export(" in code or "nonebot.export" in imp.values():
                             found.append(f"{p}#{fp}")
@@ -127,7 +128,8 @@ def no_export(ver, info):
         *("  " + d for d in found),
         "解决方案：",
         "  1. 移除插件中的 'export'",
-        "  2. 升/降级 nonebot2 到上述依赖区间",
+        "  2. 升级插件到新版本",
+        "  3. 升/降级 nonebot2 到上述依赖区间",
         "",
         sep="\n"
     )
@@ -138,5 +140,79 @@ def port_used():
         "发现错误：端口被占用",
         "解决方案：",
         "  修改环境文件（.env*）中的 PORT 为其他值",
+        "",
+        sep="\n"
+    )
+
+
+def type_subscription(log: str):
+    print("发现错误：")
+    pprint(log, indent=2)
+    print(
+        "原因：",
+        "  此插件使用了原生类型的泛型注解",
+        "  该特性在 Python 3.9 及以上版本中可用",
+        "解决方案：",
+        "  1. 升级 Python 到 3.9 及更高版本",
+        "  2. 卸载或修改此插件",
+        "",
+        sep=""
+    )
+
+
+def default_state(info, cv):
+    if cv is not None and cv < REMOVE_DEFAULT_STATE:
+        print(
+            "未知错误：",
+            "  当前的 nonebot2 版本应该有 nonebot.params.State",
+            "  请确认你的日志是否由当前环境的 nonebot2 产生",
+            "",
+            sep="\n"
+        )
+
+    found = []
+    for upld in info["plugin_dirs"]:
+        for base, _, fns in os.walk(upld):
+            for fn in fns:
+                if fn.endswith(".py"):
+                    c, imp = readpy(f"{base}/{fn}")
+                    if "nonebot.params.State" in imp.values():
+                        found.append(f"{base}/{fn}")
+
+    for p in sys.path[::-1]:
+        # if found:
+        #     break
+        try:
+            if p.endswith(".zip"):
+                for fp in _zip_ls(p):
+                    if fp.endswith(".py"):
+                        precode = _zip_view(p, fp).decode(errors="ignore")
+                        code, imp = deref(precode)
+                        if "nonebot.params.State" in imp.values():
+                            found.append(f"{p}#{fp}")
+            else:
+                for base, _, fns in os.walk(p):
+                    if "nonebot_plugin" not in base:
+                        continue
+                    for fn in fns:
+                        if fn.endswith(".py"):
+                            # print(f"Looking up {base}/{fn} ...")
+                            c, imp = readpy(f"{base}/{fn}")
+                            if "nonebot.params.State" in imp.values():
+                                found.append(f"{base}/{fn}")
+        except FileNotFoundError:
+            pass
+
+    print(
+        "发现问题：",
+        f"  'nonebot.params.State' 需要满足依赖关系：nonebot2<{REMOVE_DEFAULT_STATE}",
+        f"  当前 nonebot2 版本为 {cv}，不满足上述依赖要求",
+        "已找到使用 'nonebot.params.State' 的文件：",
+        *("  " + d for d in found),
+        "解决方案：",
+        "  1. 移除插件中的 'State'",
+        "  2. 升级插件到新版本",
+        "  3. 降级 nonebot2 到上述依赖区间",
+        "",
         sep="\n"
     )

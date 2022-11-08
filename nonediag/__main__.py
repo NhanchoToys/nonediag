@@ -4,7 +4,7 @@ import os
 import sys
 
 from .versions import DEPRECATE_EXPORT, HAS_PLUGIN_JSON_TOML, HAS_PYTHON311, HAS_REQUIRE_EXPORT, NO_PYTHON37
-from .models import duplicate_import, lack_module, no_export, not_implemented, port_used, warn_bad_import
+from .models import default_state, duplicate_import, lack_module, no_export, not_implemented, port_used, type_subscription, warn_bad_import
 from .base import noneversion, readlog, readbotpy, readtoml
 
 
@@ -15,18 +15,18 @@ def main(args):
     bothome: str = path.realpath(path.split(args.botfile)[0])
     os.chdir(bothome)
     if args.botfile.endswith(".toml"):
-        info = {"adapters": [], "userload": [], "userload_builtin": []}
+        info = {"adapters": [], "userload": [], "builtin": []}
         info.update(readtoml(path.split(args.botfile)[1]))
     else:
         info = readbotpy(path.split(args.botfile)[1])
         info.update(readtoml(info["toml"]))
     print("[DEBUG]", info)
     # print(sys.path)
-    
+
     if (nv := noneversion()) is not None:
         print("[DEBUG] Found nonebot2 version", nv)
         if sys.version_info >= (3, 11) and nv < HAS_PYTHON311:
-            raise Exception(f"当前的 nonebot2 {nv} 还不支持更新的 Python，请使用更低版本的 Python (>=3.8,<3.11)")
+            raise Exception(f"当前的 nonebot2 {nv} 还不支持更新的 Python，请使用更低版本的 Python (>=3.7,<3.11)")
         if sys.version_info < (3, 8) and nv >= NO_PYTHON37:
             raise Exception(f"当前的 nonebot2 {nv} 已不支持更旧的 Python，请使用更新版本的 Python (>=3.8)")
         if nv < HAS_REQUIRE_EXPORT or nv >= DEPRECATE_EXPORT:
@@ -68,6 +68,11 @@ def main(args):
     if "NotImplementedError" in log:
         for d in info["plugin_dirs"]:
             not_implemented(d)
+    for idx, ln in enumerate(x := log.splitlines()[::-1]):
+        if "TypeError: 'type' object is not subscriptable" in ln and sys.version_info < (3, 9):
+            type_subscription("\n".join(x[idx + 2:idx - 1:-1]))
+    if "ImportError: cannot import name 'State' from 'nonebot.params" in log:
+        default_state(info, nv)
 
 
 def _entry():

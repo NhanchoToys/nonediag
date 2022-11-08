@@ -12,7 +12,7 @@ nonediag 目前支持以下类型的错误诊断：
 - Python 版本不适配
 - 错误导入抽象基类
 - bot.py 手动导入检查及重复导入
-- `nonebot.export` 检查
+- `nonebot.export` 和 `nonebot.params.State` 检查
 - 端口占用提示
 
 ## Installation | 安装

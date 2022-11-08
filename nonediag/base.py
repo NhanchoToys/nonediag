@@ -47,7 +47,7 @@ def readbotpy(fp: str):
     out = {
         "adapters": [],
         "userload": [],
-        "userload_builtin": [],
+        "builtin": [],
         "toml": ""
     }
     code, imp = readpy(fp)
@@ -61,9 +61,9 @@ def readbotpy(fp: str):
             out["userload"].append(ast.literal_eval(ln.split("nonebot.load_plugin")[1]))
         elif "nonebot.load_builtin_plugins" in ln:
             data = ast.literal_eval(ln.split("nonebot.load_builtin_plugins")[1])
-            out["userload_builtin"].append(data) if isinstance(data, str) else out["userload_builtin"].extend(data)
+            out["builtin"].append(data) if isinstance(data, str) else out["builtin"].extend(data)
         elif "nonebot.load_builtin_plugin" in ln:
-            out["userload_builtin"].append(ast.literal_eval(ln.split("nonebot.load_builtin_plugin")[1]))
+            out["builtin"].append(ast.literal_eval(ln.split("nonebot.load_builtin_plugin")[1]))
     return out
 
 
