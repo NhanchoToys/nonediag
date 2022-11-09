@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from pprint import pprint
 from shlex import quote
 import sys
@@ -7,7 +8,7 @@ import zipfile
 
 from nonediag.base import readpy
 from nonediag.deref import deref
-from nonediag.versions import HAS_REQUIRE_EXPORT, REMOVE_DEFAULT_STATE, REMOVE_EXPORT
+from nonediag.versions import DEPRECATE_EXPORT, HAS_REQUIRE_EXPORT, REMOVE_DEFAULT_STATE, REMOVE_EXPORT
 
 
 def lack_module(log: str):
@@ -86,6 +87,14 @@ def _zip_view(zip: str, fp: str):
 
 
 def no_export(ver, info):
+    if ver is not None and HAS_REQUIRE_EXPORT <= ver < DEPRECATE_EXPORT:
+        print(
+            "未知错误：",
+            "  当前的 nonebot2 版本应该有 nonebot.export",
+            "  请确认你的日志是否由当前环境的 nonebot2 产生",
+            "",
+            sep="\n"
+        )
     # covered
     found = []
     for upld in info["plugin_dirs"]:
@@ -216,3 +225,31 @@ def default_state(info, cv):
         "",
         sep="\n"
     )
+
+
+def check_builtin(builtins):
+    found = []
+    for p in sys.path[::-1]:
+        # if found:
+        #     break
+        try:
+            if p.endswith(".zip"):
+                for fp in set("/".join(Path(_p).parts[:3]) for _p in _zip_ls(p)):
+                    pth = Path(fp).relative_to("nonebot/plugins").stem
+                    if pth.startswith("_"):
+                        continue
+                    found.append(pth)
+            else:
+                for base, dirs, fns in os.walk(p):
+                    if not base.endswith(f"nonebot{os.pathsep}plugins"):
+                        continue
+                    d = [x for x in dirs if not x.startswith("_")]
+                    d.extend(x[:-3] for x in fns if x.endswith(".py") and not x.startswith("_"))
+                    found.extend(d)
+        except FileNotFoundError:
+            pass
+
+    for b in builtins:
+        if b not in found:
+            print("错误：{b!r} 不是内置插件，无法使用 load_builtin_plugin(s) 加载")
+    print()
